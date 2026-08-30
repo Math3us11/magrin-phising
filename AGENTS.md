@@ -42,17 +42,17 @@ implementacao dessa parte e explicar o conflito.
 
 ## Stack base
 
-- Backend: Node.js com TypeScript e Express.
+- Backend: Node.js com TypeScript e Fastify.
 - Frontend: HTML, CSS e JavaScript sem framework.
 - Banco: MariaDB ou MySQL.
-- Driver SQL: `mysql2` com queries parametrizadas.
+- ORM: Sequelize com o driver `mariadb`.
 - E-mail: Nodemailer por meio de uma abstracao de transporte.
 - Transporte padrao: Mailpit local.
 - Validacao: Zod ou validacao equivalente no servidor.
 - Desenvolvimento: `tsx` e TypeScript em modo estrito.
 
-Caso o professor nao autorize Express, substituir apenas a camada HTTP por
-`node:http`, preservando rotas, servicos, banco e regras deste documento.
+O servidor deve permanecer modular e pequeno. Nao introduzir NestJS ou outro
+framework adicional sem uma decisao explicita do grupo.
 
 ## Arquitetura esperada
 
@@ -62,10 +62,12 @@ a demonstracao:
 ```text
 src/
   config/
-  db/
-  routes/
-  services/
-  utils/
+  database/
+    models/
+  modules/
+    email/
+    health/
+  app.ts
   server.ts
 public/
   css/
@@ -83,9 +85,8 @@ docs/
 
 Responsabilidades:
 
-- `routes`: receber requisicoes e devolver respostas/redirecionamentos.
-- `services`: envio de e-mail, registro de eventos e calculo de metricas.
-- `db`: conexao e queries parametrizadas.
+- `modules`: agrupar rotas, servicos e tipos por funcionalidade.
+- `database`: conexao Sequelize e definicoes dos modelos.
 - `utils`: mascaramento e validacao de dados ficticios.
 - `public`: telas estaticas e scripts do navegador.
 
@@ -144,7 +145,8 @@ Tratar divisao por zero e atualizacao repetida da pagina.
 
 - Ativar `strict: true` no TypeScript.
 - Validar dados no servidor; validacao do navegador e apenas auxiliar.
-- Usar queries parametrizadas; nunca interpolar entrada do usuario no SQL.
+- Preferir metodos do Sequelize. Queries SQL brutas so podem usar parametros
+  vinculados; nunca interpolar entrada do usuario.
 - Nao retornar erros internos, SQL ou stack traces ao navegador.
 - Manter segredos apenas em variaveis de ambiente e fornecer `.env.example` sem
   valores reais.
@@ -185,4 +187,3 @@ Uma funcionalidade so esta pronta quando:
 - possui teste proporcional ao risco;
 - nao expande o modelo de dados sem necessidade;
 - tem seu modo de execucao atualizado em `docs/EXECUCAO.md`.
-

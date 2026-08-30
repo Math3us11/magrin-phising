@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Resultado da Simulação Acadêmica</title>
+    <link rel="stylesheet" href="/assets/css/dashboard.css" />
+    <script src="/assets/js/dashboard.js" defer></script>
+  </head>
+  <body>
+    <div class="simulation-banner" role="status">
+      <span class="simulation-banner__dot" aria-hidden="true"></span>
+      Simulação Acadêmica — nenhum dado real deve ser utilizado
+    </div>
+
+    <header class="site-header">
+      <div class="site-header__content">
+        <img src="/assets/images/afya-logo-white.png" alt="Afya" />
+        <div class="header-copy">
+          <span>Segurança e Auditoria de Sistemas</span>
+          <strong>Resultado da simulação</strong>
+        </div>
+        <span id="participant-chip" class="participant-chip">Participante de teste</span>
+      </div>
+    </header>
+
+    <main class="dashboard-shell">
+      <section class="reveal-card" aria-labelledby="reveal-title">
+        <div class="reveal-icon" aria-hidden="true">!</div>
+        <div>
+          <span class="eyebrow">Demonstração concluída</span>
+          <h1 id="reveal-title">Você participou de uma simulação de phishing.</h1>
+          <p>
+            A página anterior reproduziu um fluxo de engenharia social. O CPF foi
+            armazenado somente com máscara e nenhum caractere da senha foi
+            preservado.
+          </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="metrics-title">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">Visão geral</span>
+            <h2 id="metrics-title">Resultados do teste</h2>
+          </div>
+          <button id="refresh-button" class="secondary-button" type="button">
+            Atualizar dados
+          </button>
+        </div>
+
+        <div class="metrics-grid" aria-live="polite">
+          <article class="metric-card">
+            <span class="metric-card__label">E-mails enviados</span>
+            <strong id="emails-sent">0</strong>
+            <small>participantes convidados</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-card__label">Links acessados</span>
+            <strong id="links-clicked">0</strong>
+            <small><span id="click-rate">0%</span> dos envios</small>
+          </article>
+          <article class="metric-card metric-card--accent">
+            <span class="metric-card__label">Logins simulados</span>
+            <strong id="forms-submitted">0</strong>
+            <small><span id="submission-rate">0%</span> dos envios</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-card__label">Conversão após clique</span>
+            <strong id="conversion-rate">0%</strong>
+            <small>clicaram e preencheram</small>
+          </article>
+        </div>
+      </section>
+
+      <section class="details-grid">
+        <article class="content-card" aria-labelledby="funnel-title">
+          <div class="card-heading">
+            <div>
+              <span class="eyebrow">Comportamento</span>
+              <h2 id="funnel-title">Funil da simulação</h2>
+            </div>
+            <small id="updated-at">Aguardando atualização</small>
+          </div>
+
+          <div class="funnel">
+            <div class="funnel-row">
+              <span>Receberam</span>
+              <div class="funnel-track">
+                <div id="sent-bar" class="funnel-bar funnel-bar--sent"></div>
+              </div>
+              <strong id="sent-funnel-value">0</strong>
+            </div>
+            <div class="funnel-row">
+              <span>Clicaram</span>
+              <div class="funnel-track">
+                <div id="clicked-bar" class="funnel-bar funnel-bar--clicked"></div>
+              </div>
+              <strong id="clicked-funnel-value">0</strong>
+            </div>
+            <div class="funnel-row">
+              <span>Preencheram</span>
+              <div class="funnel-track">
+                <div id="submitted-bar" class="funnel-bar funnel-bar--submitted"></div>
+              </div>
+              <strong id="submitted-funnel-value">0</strong>
+            </div>
+          </div>
+        </article>
+
+        <article class="content-card awareness-card" aria-labelledby="awareness-title">
+          <span class="eyebrow">Como se proteger</span>
+          <h2 id="awareness-title">Sinais que merecem atenção</h2>
+          <ul>
+            <li>Mensagem financeira inesperada ou com senso de urgência.</li>
+            <li>Endereço do remetente e domínio diferentes do oficial.</li>
+            <li>Link que solicita novamente CPF e senha.</li>
+            <li>Página visualmente convincente não garante autenticidade.</li>
+          </ul>
+        </article>
+      </section>
+
+      <p id="dashboard-feedback" class="dashboard-feedback" role="status" hidden></p>
+
+      <div class="page-actions">
+        <a id="back-to-login" class="text-link" href="/login?p=P001">
+          Voltar à demonstração
+        </a>
+      </div>
+    </main>
+  </body>
+</html>
+

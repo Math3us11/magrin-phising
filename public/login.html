@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Ambiente Virtual | Simulação Acadêmica</title>
+    <link rel="stylesheet" href="/assets/css/login.css" />
+    <script src="/assets/js/login.js" defer></script>
+  </head>
+  <body>
+    <div class="simulation-banner" role="status">
+      <span class="simulation-banner__dot" aria-hidden="true"></span>
+      Simulação Acadêmica — utilize somente dados fictícios
+    </div>
+
+    <main class="page-shell">
+      <section class="login-card" aria-labelledby="login-title">
+        <img
+          class="afya-logo"
+          src="/assets/images/afya-logo-white.png"
+          alt="Afya"
+        />
+
+        <div class="welcome-copy">
+          <h1 id="login-title">
+            Seja bem-vindo ao<br />
+            Ambiente Virtual de Aprendizagem<br />
+            Afya.
+          </h1>
+
+          <p>
+            Para acessar use seu <strong>CPF como Login</strong> (somente os onze
+            números).<br />
+            A senha inicial é sua data de nascimento.
+          </p>
+
+          <p>
+            Após o primeiro acesso, sua senha deve atender aos seguintes requisitos: 
+            deve ter pelo menos 10 caracteres de comprimento; deve conter um caractere 
+            numérico (por exemplo: 0...9); deve conter um caractere de símbolo (por exemplo: ! @ # $ %).
+          </p>
+
+          <p>
+            Fique atento às datas de entrega das atividades.<br />
+            Não deixe para última hora!
+          </p>
+        </div>
+
+        <!-- <div class="academic-warning">
+          Demonstração controlada: use apenas o CPF e a senha fictícios entregues
+          pelo grupo.
+        </div> -->
+
+        <div id="participant-notice" class="participant-notice" hidden></div>
+
+        <form id="login-form" autocomplete="off" novalidate>
+          <input id="participant-code" name="participantCode" type="hidden" />
+
+          <div class="field">
+            <label for="cpf">Login</label>
+            <input
+              id="cpf"
+              name="cpf"
+              type="text"
+              inputmode="numeric"
+              maxlength="14"
+              autocomplete="off"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="password">Senha</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              minlength="4"
+              maxlength="64"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+
+          <div class="form-actions">
+            <div class="form-options">
+              <label class="remember-option">
+                <input type="checkbox" name="remember" />
+                <span>Continuar conectado</span>
+              </label>
+              <button id="forgot-password" class="forgot-link" type="button">
+                Esqueceu a senha?
+              </button>
+            </div>
+
+            <button id="submit-button" class="login-button" type="submit">
+              Login
+            </button>
+          </div>
+
+          <p id="form-feedback" class="form-feedback" role="status" hidden></p>
+        </form>
+
+        <!-- <p class="card-footer">Página preparada exclusivamente para atividade acadêmica.</p> -->
+      </section>
+    </main>
+  </body>
+</html>
+

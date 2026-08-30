@@ -37,17 +37,48 @@ Nao fazem parte do escopo:
 
 | Camada | Tecnologia | Motivo |
 | --- | --- | --- |
-| Backend | Node.js, TypeScript e Express | Stack prevista na atividade e simples de demonstrar |
+| Backend | Node.js, TypeScript e Fastify | Servidor leve, modular e simples de demonstrar |
 | Frontend | HTML, CSS e JavaScript | Nao depende da aprovacao de framework frontend |
 | Banco | MariaDB ou MySQL | Banco relacional conhecido pelo grupo |
-| SQL | mysql2 | Suporte a promises e queries parametrizadas |
+| ORM | Sequelize com driver mariadb | Modelos simples e consultas sem SQL interpolado |
 | E-mail | Nodemailer | Permite alternar entre SMTP local e autorizado |
 | Desenvolvimento | tsx | Executa TypeScript durante o desenvolvimento |
 | Validacao | Zod | Centraliza regras de validacao do servidor |
 | E-mail local | Mailpit | Mantem mensagens dentro do laboratorio |
 
-O Express pode ser trocado por `node:http` se o professor nao autorizar
-frameworks de backend. O frontend permanece sem framework na primeira versao.
+Fastify e Sequelize formam a stack inicial confirmada para o servidor. O
+frontend permanece sem framework na primeira versao.
+
+### Estado atual do repositorio
+
+Implementado neste primeiro incremento:
+
+- servidor Fastify com `GET /` e `GET /health`;
+- configuracao validada por variaveis de ambiente;
+- conexao MariaDB por Sequelize com pool limitado;
+- modelos Sequelize `Audit` e `Submission`;
+- comandos `db:check` e `db:init`;
+- template de e-mail permanentemente identificado como simulacao;
+- servico de e-mail desabilitado por padrao e preparado para Mailpit;
+- `POST /admin/send` protegido por token, limitado por allowlists e com envio
+  idempotente por participante;
+- transportes Mailpit e SMTP externo separados por `EMAIL_MODE`;
+- registro de `email_sent` somente depois da confirmacao do transporte;
+- tela responsiva de login em `GET /login?p=P001`, baseada na referencia visual
+  e nos arquivos de imagem fornecidos para a demonstracao;
+- `POST /login` com validacao de allowlists, mascaramento no backend e transacao
+  Sequelize;
+- registro idempotente de `link_clicked` e `form_submitted`;
+- persistencia exclusiva de CPF mascarado e tamanho da senha;
+- dashboard agregado de apresentacao em `GET /dashboard?p=P001`;
+- API de metricas em `GET /api/dashboard/metrics`;
+- testes do template de e-mail, da pagina e dos arquivos estaticos.
+
+Ainda nao implementado:
+
+- boleto e conscientizacao;
+- dashboard administrativo detalhado e autenticacao administrativa;
+- tela administrativa detalhada para iniciar os envios;
 
 ## 4. Fluxo da demonstracao
 
@@ -88,11 +119,11 @@ informacoes pessoais.
 Criar `database/schema.sql` com o seguinte modelo inicial:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS phishing_simulation
+CREATE DATABASE IF NOT EXISTS phising
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE phishing_simulation;
+USE phising;
 
 CREATE TABLE IF NOT EXISTS audit (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -196,7 +227,6 @@ magrin-phising/
   tsconfig.json
   .env.example
   .gitignore
-  docker-compose.yml
   database/
     schema.sql
   docs/
@@ -215,20 +245,23 @@ magrin-phising/
   src/
     config/
       env.ts
-    db/
-      connection.ts
-      audit.repository.ts
-      submissions.repository.ts
-    routes/
-      public.routes.ts
-      admin.routes.ts
-    services/
-      audit.service.ts
-      email.service.ts
-      metrics.service.ts
-    utils/
-      mask.ts
-      participant.ts
+    database/
+      sequelize.ts
+      models/
+        audit.model.ts
+        submission.model.ts
+        index.ts
+    modules/
+      email/
+        email.service.ts
+        email.template.ts
+        email.types.ts
+      health/
+        health.route.ts
+    scripts/
+      check-db.ts
+      init-db.ts
+    app.ts
     server.ts
   tests/
 ```
@@ -247,9 +280,9 @@ magrin-phising/
 Dependencias planejadas:
 
 ```powershell
-npm install express mysql2 nodemailer zod dotenv helmet express-rate-limit
-npm install --save-dev typescript tsx vitest supertest `
-  @types/node @types/express @types/nodemailer @types/supertest
+npm install fastify sequelize mariadb nodemailer zod dotenv
+npm install --save-dev typescript tsx vitest `
+  @types/node @types/nodemailer
 ```
 
 Scripts esperados em `package.json`:
@@ -260,20 +293,24 @@ Scripts esperados em `package.json`:
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "db:check": "npm run build --silent && node dist/scripts/check-db.js",
+    "db:init": "npm run build --silent && node dist/scripts/init-db.js",
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
   }
 }
 ```
 
 ### Etapa 2 - Banco
 
-1. Subir MariaDB/MySQL localmente.
-2. Executar `database/schema.sql`.
-3. Criar um usuario de banco exclusivo para a aplicacao.
-4. Conceder apenas `SELECT`, `INSERT` e `DELETE` nas duas tabelas.
-5. Implementar conexao por pool.
-6. Implementar queries parametrizadas e idempotentes.
+1. Subir o MariaDB localmente e criar o banco `phising`.
+2. Configurar a conexao no `.env`.
+3. Executar `npm run db:check` para testar a conexao.
+4. Executar `npm run db:init` para criar somente as tabelas ausentes.
+5. Antes da entrega, criar um usuario de banco exclusivo para a aplicacao.
+6. Conceder apenas os privilegios necessarios nas duas tabelas.
+7. Usar a instancia Sequelize com pool limitado.
+8. Preferir metodos do ORM e usar parametros vinculados em eventual SQL bruto.
 
 ### Etapa 3 - Registro de eventos
 
@@ -324,6 +361,22 @@ necessaria. Se essa autorizacao nao existir, usar marca ficticia.
 5. Incluir o banner textual `Simulacao Academica` na mensagem.
 6. Confirmar que nenhum e-mail sai para a internet nesse modo.
 
+Configuracao para o Mailpit local:
+
+```dotenv
+EMAIL_MODE=mailpit
+SMTP_HOST=127.0.0.1
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASSWORD=
+EMAIL_FROM=simulacao-academica@example.test
+EMAIL_RECIPIENT_ALLOWLIST=participante@example.test
+```
+
+O endereco usado com Mailpit nao precisa existir, pois a mensagem fica retida no
+laboratorio e pode ser visualizada na interface local do Mailpit.
+
 ### Etapa 8 - E-mail externo opcional
 
 Habilitar somente depois da confirmacao do professor e da definicao dos
@@ -332,9 +385,10 @@ participantes autorizados.
 1. Criar uma conta dedicada com nome neutro, por exemplo
    `simulacao.seguranca.grupo@...`.
 2. Nao usar endereco que pareca pertencer oficialmente a Afya.
-3. Configurar credencial SMTP em variavel de ambiente.
-4. Manter `EMAIL_MODE=mailpit` como padrao.
-5. Exigir `EMAIL_MODE=external` para permitir entrega real.
+3. Usar o transporte SMTP externo separado e configura-lo por variaveis de
+   ambiente.
+4. Manter `EMAIL_MODE=disabled` como padrao.
+5. Nao reutilizar o transporte Mailpit como transporte externo.
 6. Recusar destinatarios ausentes da allowlist.
 7. Aplicar limite de um envio por participante.
 8. Nao inserir chave, senha de aplicativo ou destinatarios reais no repositorio.
@@ -343,46 +397,69 @@ Provedores externos podem bloquear conteudo semelhante a phishing. Consultar a
 politica do provedor antes do teste e preferir infraestrutura institucional
 explicitamente autorizada quando for necessaria entrega real.
 
-## 10. Variaveis de ambiente previstas
+Exemplo para uma conta Gmail dedicada ao teste, usando SSL na porta 465:
 
-O futuro `.env.example` deve conter somente nomes e exemplos seguros:
+```dotenv
+EMAIL_MODE=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=seu-email-de-teste@gmail.com
+SMTP_PASSWORD=senha-de-aplicativo
+EMAIL_FROM=seu-email-de-teste@gmail.com
+EMAIL_RECIPIENT_ALLOWLIST=seu-proprio-email@gmail.com
+```
+
+Nao usar a senha normal da conta. Para SMTP autenticado, gerar uma senha de
+aplicativo e mante-la somente no `.env`. A conta Google precisa ter verificacao
+em duas etapas para disponibilizar senhas de aplicativo. Algumas contas
+institucionais podem impedir esse recurso por politica do administrador.
+
+## 10. Variaveis de ambiente atuais
+
+O `.env.example` contem apenas exemplos seguros. A senha real fica somente no
+`.env` ignorado pelo Git:
 
 ```dotenv
 NODE_ENV=development
+HOST=127.0.0.1
 PORT=3000
 
-DB_HOST=127.0.0.1
+DB_DIALECT=mariadb
+DB_HOST=localhost
 DB_PORT=3306
-DB_NAME=phishing_simulation
-DB_USER=simulation_app
+DB_DATABASE=phising
+DB_USERNAME=root
 DB_PASSWORD=change-me
+DB_LOGGING=false
+DB_SYNC=false
 
-EMAIL_MODE=mailpit
+EMAIL_MODE=disabled
 SMTP_HOST=127.0.0.1
 SMTP_PORT=1025
+SMTP_SECURE=false
 SMTP_USER=
 SMTP_PASSWORD=
 EMAIL_FROM=simulacao-academica@example.test
-
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD_HASH=replace-with-a-hash
-SESSION_SECRET=replace-with-a-random-development-secret
-
-ALLOWED_PARTICIPANT_CODES=P001,P002,P003
-ALLOWED_RECIPIENTS=
+SIMULATION_BASE_URL=http://localhost:3000
+EMAIL_RECIPIENT_ALLOWLIST=participante@example.test
+ADMIN_API_TOKEN=troque-este-token-administrativo-local
+ALLOW_RUNTIME_RECIPIENT_AUTHORIZATION=false
+RUNTIME_RECIPIENT_AUTHORIZATION_TTL_SECONDS=300
 ```
 
 ## 11. Execucao local prevista
 
-Os comandos abaixo passam a valer depois que os arquivos de scaffold,
-`package.json`, `docker-compose.yml` e `database/schema.sql` forem criados.
+Os comandos abaixo usam a instalacao local do MariaDB. O arquivo `.env` nunca
+deve ser versionado.
 
 ### Primeira execucao
 
 ```powershell
 Copy-Item .env.example .env
 npm install
-docker compose up -d db mailpit
+npm run db:check
+npm run db:init
 npm run dev
 ```
 
@@ -390,14 +467,99 @@ Abrir:
 
 ```text
 Aplicacao:       http://localhost:3000
-Dashboard:       http://localhost:3000/admin/dashboard
-Caixa do Mailpit: http://localhost:8025
+Saude do servidor: http://localhost:3000/health
+Login de teste:  http://localhost:3000/login?p=P001
+Dashboard:       http://localhost:3000/dashboard?p=P001
 ```
+
+### Enviar um e-mail autorizado
+
+1. Configurar no `.env` o transporte, o remetente e o destinatario permitido.
+2. Reiniciar a aplicacao depois de alterar o `.env`.
+3. Em um segundo terminal Bash, validar a configuracao sem exibir os segredos:
+
+```bash
+npm run email:check
+```
+
+4. Abrir o assistente interativo, informar os dados e confirmar o envio:
+
+```bash
+npm run email:send
+```
+
+O assistente solicita o codigo do participante e o destinatario, mostra um
+resumo com o e-mail mascarado e somente envia depois da confirmacao `s`.
+
+Destinatarios da allowlist fixa seguem diretamente para a confirmacao final. Um
+endereco diferente pode ser autorizado temporariamente para um voluntario quando
+`ALLOW_RUNTIME_RECIPIENT_AUTHORIZATION=true`. Nesse caso o operador precisa
+digitar `AUTORIZADO` para declarar o consentimento e depois confirmar o envio.
+A permissao fica apenas na memoria do servidor, e vinculada ao participante,
+expira em 300 segundos e e consumida depois de uma unica tentativa confirmada.
+O endereco nao e salvo no banco, em arquivo ou no `.env`.
+
+Exemplo do fluxo temporario:
+
+```text
+Codigo do participante [P001]: P002
+Enviar e-mail para (Enter usa a allowlist fixa): voluntario@example.com
+O voluntario autorizou o teste? Digite AUTORIZADO: AUTORIZADO
+
+Confira antes do envio:
+- participante: P002
+- destinatario: vo***@example.com
+- autorizacao: temporaria, uso unico
+
+Confirmar envio? [s/N]: s
+```
+
+Somente codigos presentes em `ALLOWED_PARTICIPANT_CODES` podem usar esse fluxo.
+O modo SMTP, o token administrativo e a confirmacao final continuam
+obrigatorios. A autorizacao temporaria e desabilitada por padrao no
+`.env.example`.
+
+Para automacao, o modo anterior com argumentos continua disponivel. Se houver
+apenas um destinatario na allowlist, basta informar o participante:
+
+```bash
+npm run email:send -- P001
+```
+
+Se houver mais de um destinatario autorizado, o endereco pode ser informado
+como segundo argumento e ainda sera validado contra a allowlist:
+
+```bash
+npm run email:send -- P001 participante-autorizado@example.test
+```
+
+O servidor iniciado por `npm run dev` precisa continuar ativo em outro
+terminal. O comando nunca imprime o token ou a senha SMTP; no modo interativo,
+o destinatario aparece mascarado apenas para confirmacao.
+
+Respostas esperadas:
+
+- `201` e `status: sent`: transporte confirmou e `email_sent` foi registrado;
+- `200` e `status: already_sent`: o participante ja recebeu a mensagem;
+- `400`: participante ou destinatario esta fora da allowlist;
+- `401`: token administrativo ausente ou incorreto;
+- `503`: `EMAIL_MODE=disabled`;
+- `502`: o SMTP nao confirmou o envio.
+
+O sistema nao armazena o endereco destinatario. O banco recebe apenas o codigo
+opaco do participante e o evento `email_sent`. Para repetir um ensaio com
+`P001`, os dados da demonstracao precisam ser limpos pela rotina administrativa
+planejada; nao remova registros manualmente durante a apresentacao.
+
+Se o link for aberto no mesmo computador do servidor, mantenha
+`SIMULATION_BASE_URL=http://localhost:3000`. Em outro aparelho, `localhost`
+apontaria para o proprio aparelho; nesse caso use apenas um endereco da rede
+local autorizada e nunca publique a aplicacao abertamente.
 
 ### Execucoes seguintes
 
 ```powershell
-docker compose up -d db mailpit
+npm run db:check
 npm run dev
 ```
 
@@ -442,4 +604,3 @@ npm run build
 - [ ] Segredos nao foram versionados.
 - [ ] Testes e build foram executados.
 - [ ] Limpeza pos-demonstracao foi validada.
-

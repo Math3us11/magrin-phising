@@ -1,0 +1,294 @@
+:root {
+  color-scheme: dark;
+  --panel: #262626;
+  --panel-soft: #313131;
+  --text: #ffffff;
+  --muted: #d6d6d6;
+  --accent: #aa003f;
+  --warning: #f1bd4a;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--text);
+  background-color: #5b4c40;
+  background-image:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 55%, rgba(44, 0, 13, 0.64) 100%),
+    url("../images/afya-login-background.jpg");
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.simulation-banner {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 9px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  background: rgba(26, 20, 24, 0.96);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  text-align: center;
+}
+
+.simulation-banner__dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--warning);
+  box-shadow: 0 0 0 4px rgba(241, 189, 74, 0.14);
+}
+
+.page-shell {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 76px 22px 42px;
+}
+
+.login-card {
+  width: min(100%, 435px);
+  padding: 38px 34px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  background: rgba(35, 35, 35, 0.98);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
+  text-align: center;
+}
+
+.afya-logo {
+  display: block;
+  width: 158px;
+  max-width: 54%;
+  height: auto;
+  margin: 0 auto 30px;
+}
+
+.welcome-copy h1 {
+  margin: 0 0 26px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.42;
+  text-transform: uppercase;
+}
+
+.welcome-copy p {
+  margin: 0 0 24px;
+  color: #fff;
+  font-size: 0.93rem;
+  line-height: 1.48;
+}
+
+.welcome-copy strong {
+  font-weight: 700;
+}
+
+.academic-warning,
+.participant-notice,
+.form-feedback {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(241, 189, 74, 0.5);
+  border-radius: 4px;
+  color: #ffe5a5;
+  background: rgba(241, 189, 74, 0.08);
+  font-size: 0.76rem;
+  line-height: 1.42;
+  text-align: left;
+}
+
+.participant-notice {
+  padding: 8px 11px;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--muted);
+  background: var(--panel-soft);
+}
+
+.field {
+  margin-bottom: 17px;
+  text-align: left;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 7px;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.field input {
+  width: 100%;
+  height: 40px;
+  padding: 7px 10px;
+  border: 2px solid transparent;
+  border-radius: 2px;
+  outline: 0;
+  color: #171717;
+  background: #fff;
+  transition: border-color 130ms ease, box-shadow 130ms ease;
+}
+
+.field input:focus {
+  border-color: #c9004c;
+  box-shadow: 0 0 0 3px rgba(201, 0, 76, 0.22);
+}
+
+.field input::placeholder {
+  color: #8c8c8c;
+}
+
+.form-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 2px;
+}
+
+.form-options {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.remember-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.remember-option input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.forgot-link {
+  padding: 0;
+  border: 0;
+  color: #fff;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.78rem;
+  text-decoration: underline;
+}
+
+.login-button {
+  min-width: 112px;
+  height: 38px;
+  padding: 0 24px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 2px;
+  color: #fff;
+  background: transparent;
+  cursor: pointer;
+  transition: background 130ms ease, border-color 130ms ease;
+}
+
+.login-button:hover,
+.login-button:focus-visible {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.login-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.form-feedback {
+  margin: 17px 0 0;
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.card-footer {
+  margin: 24px 0 0;
+  color: #aaa;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 620px) {
+  body {
+    background-position: 61% center;
+  }
+
+  .page-shell {
+    align-items: flex-start;
+    padding: 66px 14px 28px;
+  }
+
+  .login-card {
+    padding: 30px 22px 24px;
+    background: rgba(35, 35, 35, 0.97);
+  }
+
+  .afya-logo {
+    width: 140px;
+    margin-bottom: 24px;
+  }
+
+  .welcome-copy h1 {
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+  }
+
+  .welcome-copy p {
+    margin-bottom: 18px;
+    font-size: 0.84rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .simulation-banner {
+    font-size: 0.7rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .login-button {
+    width: 100%;
+  }
+}
+
