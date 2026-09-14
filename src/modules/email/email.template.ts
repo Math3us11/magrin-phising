@@ -89,7 +89,7 @@ export function buildSimulationEmail(
                       <tr>
                         <td align="center" bgcolor="#a80046" style="border-radius:4px">
                           <a href="${loginUrl.toString()}" style="display:inline-block;padding:14px 28px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border:1px solid #c61a62;border-radius:4px">
-                            Acessar ambiente de teste
+                            Acessar
                           </a>
                         </td>
                       </tr>

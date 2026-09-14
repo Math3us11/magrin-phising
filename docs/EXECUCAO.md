@@ -57,7 +57,8 @@ Implementado neste primeiro incremento:
 - configuracao validada por variaveis de ambiente;
 - conexao MariaDB por Sequelize com pool limitado;
 - modelos Sequelize `Audit` e `Submission`;
-- comandos `db:check` e `db:init`;
+- comando idempotente `npm run db` para criar o banco e aplicar o schema;
+- comandos auxiliares `db:check`, `db:init` e `db:setup`;
 - template de e-mail permanentemente identificado como simulacao;
 - servico de e-mail desabilitado por padrao e preparado para Mailpit;
 - `POST /admin/send` protegido por token, limitado por allowlists e com envio
@@ -72,6 +73,7 @@ Implementado neste primeiro incremento:
 - persistencia exclusiva de CPF mascarado e tamanho da senha;
 - dashboard agregado de apresentacao em `GET /dashboard?p=P001`;
 - API de metricas em `GET /api/dashboard/metrics`;
+- limpeza protegida em `POST /admin/reset-demo` e `npm run db:reset`;
 - testes do template de e-mail, da pagina e dos arquivos estaticos.
 
 Ainda nao implementado:
@@ -276,6 +278,7 @@ magrin-phising/
 4. Criar a estrutura de diretorios.
 5. Configurar `.gitignore` para ignorar `.env`, logs e dependencias.
 6. Criar `.env.example` sem nenhum segredo verdadeiro.
+7. Executar `npm run env:check` depois de configurar uma nova maquina.
 
 Dependencias planejadas:
 
@@ -293,8 +296,10 @@ Scripts esperados em `package.json`:
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "db": "npm run db:setup",
     "db:check": "npm run build --silent && node dist/scripts/check-db.js",
-    "db:init": "npm run build --silent && node dist/scripts/init-db.js",
+    "db:init": "npm run db:setup",
+    "db:setup": "npm run build --silent && node dist/scripts/setup-db.js",
     "lint": "tsc --noEmit",
     "test": "vitest run"
   }
@@ -303,10 +308,10 @@ Scripts esperados em `package.json`:
 
 ### Etapa 2 - Banco
 
-1. Subir o MariaDB localmente e criar o banco `phising`.
+1. Subir o MariaDB localmente.
 2. Configurar a conexao no `.env`.
-3. Executar `npm run db:check` para testar a conexao.
-4. Executar `npm run db:init` para criar somente as tabelas ausentes.
+3. Executar `npm run db` para criar o banco e somente as tabelas ausentes.
+4. Executar `npm run db:check` quando quiser testar apenas a conexao.
 5. Antes da entrega, criar um usuario de banco exclusivo para a aplicacao.
 6. Conceder apenas os privilegios necessarios nas duas tabelas.
 7. Usar a instancia Sequelize com pool limitado.
@@ -350,7 +355,8 @@ necessaria. Se essa autorizacao nao existir, usar marca ficticia.
 4. Mostrar somente dados mascarados.
 5. Atualizar os numeros por botao ou polling moderado.
 6. Tratar indisponibilidade do banco e estado vazio.
-7. Implementar limpeza da demonstracao com confirmacao explicita.
+7. Limpar a demonstracao com confirmacao explicita quando for necessario
+   repetir o fluxo.
 
 ### Etapa 7 - E-mail local
 
@@ -453,15 +459,27 @@ RUNTIME_RECIPIENT_AUTHORIZATION_TTL_SECONDS=300
 Os comandos abaixo usam a instalacao local do MariaDB. O arquivo `.env` nunca
 deve ser versionado.
 
-### Primeira execucao
+### Primeira execucao no Bash
 
-```powershell
-Copy-Item .env.example .env
+```bash
+cp .env.example .env
 npm install
-npm run db:check
-npm run db:init
+npm run env:check
+npm run db
 npm run dev
 ```
+
+Antes de `npm run db`, editar no `.env` pelo menos `DB_HOST`, `DB_PORT`,
+`DB_DATABASE`, `DB_USERNAME` e `DB_PASSWORD`. O comando:
+
+1. conecta ao servidor MariaDB sem depender da existencia previa do banco;
+2. cria `DB_DATABASE` com UTF-8 quando ele ainda nao existe;
+3. cria as tabelas `audit` e `submissions` quando estiverem ausentes;
+4. preserva banco, tabelas e registros que ja existirem;
+5. verifica as duas tabelas e informa se o ambiente esta pronto.
+
+`npm run db:init` e `npm run db:setup` executam o mesmo procedimento. O atalho
+recomendado para a apresentacao e `npm run db`.
 
 Abrir:
 
@@ -548,8 +566,32 @@ Respostas esperadas:
 
 O sistema nao armazena o endereco destinatario. O banco recebe apenas o codigo
 opaco do participante e o evento `email_sent`. Para repetir um ensaio com
-`P001`, os dados da demonstracao precisam ser limpos pela rotina administrativa
-planejada; nao remova registros manualmente durante a apresentacao.
+`P001`, use a rotina administrativa; nao remova registros manualmente durante a
+apresentacao.
+
+### Limpar a demonstracao
+
+Para apagar somente os registros de `audit` e `submissions`, preservando o
+banco e as tabelas:
+
+```bash
+npm run db:reset
+```
+
+O comando mostra quantos registros existem e exige a frase exata:
+
+```text
+RESETAR DEMONSTRACAO
+```
+
+Qualquer outra resposta cancela a operacao. A mesma funcionalidade esta
+disponivel em `POST /admin/reset-demo`, protegida por Bearer Token e pelo corpo:
+
+```json
+{
+  "confirmation": "RESETAR DEMONSTRACAO"
+}
+```
 
 Se o link for aberto no mesmo computador do servidor, mantenha
 `SIMULATION_BASE_URL=http://localhost:3000`. Em outro aparelho, `localhost`
@@ -558,8 +600,8 @@ local autorizada e nunca publique a aplicacao abertamente.
 
 ### Execucoes seguintes
 
-```powershell
-npm run db:check
+```bash
+npm run db
 npm run dev
 ```
 

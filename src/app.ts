@@ -1,5 +1,8 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import { createDemoResetRoute } from './modules/admin/demo-reset.route';
+import { demoResetService } from './modules/admin/demo-reset.service';
+import type { DemoResetOperations } from './modules/admin/demo-reset.types';
 import { createDashboardRoute } from './modules/dashboard/dashboard.route';
 import { dashboardService } from './modules/dashboard/dashboard.service';
 import type { DashboardOperations } from './modules/dashboard/dashboard.types';
@@ -14,6 +17,7 @@ import { publicRoute } from './modules/public/public.route';
 
 interface BuildAppOptions {
   dashboardOperations?: DashboardOperations;
+  demoResetOperations?: DemoResetOperations;
   emailOperations?: EmailOperations;
   loginOperations?: LoginOperations;
 }
@@ -47,6 +51,9 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     createDashboardRoute(options.dashboardOperations ?? dashboardService),
   );
   app.register(createEmailRoute(options.emailOperations ?? emailService));
+  app.register(
+    createDemoResetRoute(options.demoResetOperations ?? demoResetService),
+  );
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error({ error }, 'Erro interno na requisicao');

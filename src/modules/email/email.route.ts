@@ -1,8 +1,6 @@
-import { timingSafeEqual } from 'node:crypto';
+import type { FastifyPluginAsync } from 'fastify';
 
-import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
-
-import { env } from '../../config/env';
+import { isAdminAuthorized } from '../admin/admin-auth';
 import {
   EmailAuditError,
   EmailAuthorizationDisabledError,
@@ -11,28 +9,12 @@ import {
 } from './email.service';
 import type { EmailOperations } from './email.types';
 
-function isAuthorized(request: FastifyRequest): boolean {
-  const authorization = request.headers.authorization;
-  const prefix = 'Bearer ';
-
-  if (!authorization?.startsWith(prefix)) {
-    return false;
-  }
-
-  const received = Buffer.from(authorization.slice(prefix.length));
-  const expected = Buffer.from(env.ADMIN_API_TOKEN);
-
-  return (
-    received.length === expected.length && timingSafeEqual(received, expected)
-  );
-}
-
 export function createEmailRoute(
   operations: EmailOperations,
 ): FastifyPluginAsync {
   return async (app) => {
     app.post('/admin/email/authorize', async (request, reply) => {
-      if (!isAuthorized(request)) {
+      if (!isAdminAuthorized(request)) {
         return reply.code(401).send({
           ok: false,
           error: 'Autenticacao administrativa obrigatoria.',
@@ -69,7 +51,7 @@ export function createEmailRoute(
     });
 
     app.post('/admin/send', async (request, reply) => {
-      if (!isAuthorized(request)) {
+      if (!isAdminAuthorized(request)) {
         return reply.code(401).send({
           ok: false,
           error: 'Autenticacao administrativa obrigatoria.',
