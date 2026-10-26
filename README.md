@@ -103,6 +103,8 @@ Endereços principais:
 | Status da aplicação | `http://localhost:3000/` |
 | Saúde do servidor e banco | `http://localhost:3000/health` |
 | Login do participante P001 | `http://localhost:3000/login?p=P001` |
+| Documento fictício P001 | `http://localhost:3000/boleto?p=P001` |
+| Conscientização P001 | `http://localhost:3000/awareness?p=P001` |
 | Dashboard da apresentação | `http://localhost:3000/dashboard?p=P001` |
 
 Para executar a versão compilada:
@@ -137,6 +139,12 @@ Senha: [8 caracteres capturados]
 ```
 
 Nenhum caractere da senha ou CPF completo deve ser persistido.
+
+Depois da submissão, o participante é encaminhado a um documento visual
+inteiramente fictício. Ele possui marca d'água, avisos permanentes, beneficiário
+inexistente, valor nulo, linha ilustrativa inválida e representação decorativa
+não escaneável. A tela seguinte explica os sinais de engenharia social usados no
+cenário.
 
 ## Configurar o envio de e-mail
 

@@ -16,11 +16,11 @@ function percentage(numerator: number, denominator: number): number {
 export class DashboardService implements DashboardOperations {
   constructor(private readonly persistence: MetricsPersistence) {}
 
-  async getMetrics(): Promise<DashboardMetrics> {
+  async getMetrics(campaignId?: number | null): Promise<DashboardMetrics> {
     const [emailsSent, linksClicked, formsSubmitted] = await Promise.all([
-      this.persistence.countEvent('email_sent'),
-      this.persistence.countEvent('link_clicked'),
-      this.persistence.countEvent('form_submitted'),
+      this.persistence.countEvent('email_sent', campaignId),
+      this.persistence.countEvent('link_clicked', campaignId),
+      this.persistence.countEvent('form_submitted', campaignId),
     ]);
 
     return {

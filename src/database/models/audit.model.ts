@@ -21,6 +21,7 @@ export class Audit extends Model<
 > {
   declare id: CreationOptional<number>;
   declare participantCode: string;
+  declare campaignId: CreationOptional<number | null>;
   declare eventType: AuditEventType;
   declare createdAt: CreationOptional<Date>;
 }
@@ -37,6 +38,11 @@ export function initializeAuditModel(sequelize: Sequelize): typeof Audit {
         type: DataTypes.STRING(50),
         allowNull: false,
         field: 'participant_code',
+      },
+      campaignId: {
+        type: DataTypes.BIGINT.UNSIGNED,
+        allowNull: true,
+        field: 'campaign_id',
       },
       eventType: {
         type: DataTypes.ENUM(...AUDIT_EVENT_TYPES),

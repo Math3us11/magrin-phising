@@ -1,25 +1,33 @@
 import { z } from 'zod';
 
 import { env } from '../../config/env';
+import { isCampaignSendable } from '../campaigns/campaigns.service';
+import { participantService } from '../participants/participants.service';
+import { SequelizeCampaignPersistence } from '../campaigns/campaigns.repository';
 import { InMemoryEmailRecipientAuthorizationStore } from './email.authorization';
 import { SequelizeEmailPersistence } from './email.repository';
 import { buildSimulationEmail } from './email.template';
 import { NodemailerEmailTransport } from './email.transport';
 import type {
+  EmailCampaignLookup,
   EmailDeliveryResult,
   EmailOperations,
   EmailPersistence,
   EmailRecipientAuthorizationStore,
   EmailServiceConfig,
+  EmailTokenIssuer,
   EmailTransport,
 } from './email.types';
 
-const emailInputSchema = z.object({
+const sendInputSchema = z.object({
+  campaignId: z.coerce.number().int().positive(),
   participantCode: z.string().regex(/^P\d{3,6}$/),
   recipient: z.string().trim().toLowerCase().email(),
 });
 
-const temporaryAuthorizationSchema = emailInputSchema.extend({
+const temporaryAuthorizationSchema = z.object({
+  participantCode: z.string().regex(/^P\d{3,6}$/),
+  recipient: z.string().trim().toLowerCase().email(),
   consent: z.literal('AUTORIZADO'),
 });
 
@@ -51,11 +59,27 @@ export class EmailAuditError extends Error {
   }
 }
 
+export class EmailCampaignClosedError extends Error {
+  constructor() {
+    super('A campanha nao esta ativa ou esta fora da janela autorizada.');
+    this.name = 'EmailCampaignClosedError';
+  }
+}
+
+export class EmailLimitReachedError extends Error {
+  constructor() {
+    super('A campanha atingiu o limite de envios configurado.');
+    this.name = 'EmailLimitReachedError';
+  }
+}
+
 export class EmailService implements EmailOperations {
   constructor(
     private readonly persistence: EmailPersistence,
     private readonly transport: EmailTransport,
     private readonly config: EmailServiceConfig,
+    private readonly campaigns: EmailCampaignLookup,
+    private readonly tokenIssuer: EmailTokenIssuer,
     private readonly authorizationStore: EmailRecipientAuthorizationStore =
       new InMemoryEmailRecipientAuthorizationStore(),
   ) {}
@@ -90,7 +114,7 @@ export class EmailService implements EmailOperations {
   async sendSimulationEmail(
     input: unknown,
   ): Promise<EmailDeliveryResult> {
-    const parsed = emailInputSchema.safeParse(input);
+    const parsed = sendInputSchema.safeParse(input);
 
     if (
       !parsed.success ||
@@ -99,32 +123,63 @@ export class EmailService implements EmailOperations {
       throw new EmailValidationError();
     }
 
+    const { campaignId, participantCode, recipient } = parsed.data;
+
     if (this.config.mode === 'disabled') {
       return { status: 'disabled' };
     }
 
-    if (await this.persistence.wasSent(parsed.data.participantCode)) {
+    const campaign = await this.campaigns.findById(campaignId);
+
+    if (!campaign) {
+      throw new EmailValidationError();
+    }
+
+    // Campanha parada, em rascunho ou fora da janela nao dispara (AGENTS 2.3/2.4).
+    if (!isCampaignSendable(campaign)) {
+      throw new EmailCampaignClosedError();
+    }
+
+    if (await this.persistence.wasSent(participantCode)) {
       return { status: 'already_sent' };
     }
 
-    const usesTemporaryAuthorization = !this.isStaticallyAllowed(
-      parsed.data.recipient,
-    );
+    if (campaign.maxSends !== null) {
+      const sent = await this.persistence.countSentForCampaign(campaign.id);
+      if (sent >= campaign.maxSends) {
+        throw new EmailLimitReachedError();
+      }
+    }
+
+    const usesTemporaryAuthorization = !this.isStaticallyAllowed(recipient);
 
     if (
       usesTemporaryAuthorization &&
-      !this.authorizationStore.claim(
-        parsed.data.participantCode,
-        parsed.data.recipient,
-      )
+      !this.authorizationStore.claim(participantCode, recipient)
     ) {
       throw new EmailValidationError();
     }
 
+    let loginUrl: string;
+
+    try {
+      // O token em texto so existe aqui: segue direto para o link do e-mail,
+      // nunca para log ou banco (guardamos apenas o hash).
+      ({ loginUrl } = await this.tokenIssuer.issueToken(
+        campaign.id,
+        participantCode,
+      ));
+    } catch {
+      if (usesTemporaryAuthorization) {
+        this.authorizationStore.release(participantCode, recipient);
+      }
+      throw new EmailValidationError();
+    }
+
     const message = buildSimulationEmail(
-      parsed.data,
+      { participantCode, recipient },
       this.config.from,
-      this.config.baseUrl,
+      loginUrl,
     );
 
     let result: { messageId?: string };
@@ -133,10 +188,7 @@ export class EmailService implements EmailOperations {
       result = await this.transport.send(message);
     } catch {
       if (usesTemporaryAuthorization) {
-        this.authorizationStore.release(
-          parsed.data.participantCode,
-          parsed.data.recipient,
-        );
+        this.authorizationStore.release(participantCode, recipient);
       }
 
       // Nao anexa o erro original para evitar que endereco ou dados SMTP
@@ -145,25 +197,19 @@ export class EmailService implements EmailOperations {
     }
 
     try {
-      await this.persistence.recordSent(parsed.data.participantCode);
+      await this.persistence.recordSent(participantCode, campaign.id);
     } catch {
       if (usesTemporaryAuthorization) {
         // O transporte ja confirmou a entrega. Consumir a autorizacao evita
         // uma duplicidade caso apenas o registro de auditoria tenha falhado.
-        this.authorizationStore.consume(
-          parsed.data.participantCode,
-          parsed.data.recipient,
-        );
+        this.authorizationStore.consume(participantCode, recipient);
       }
 
       throw new EmailAuditError();
     }
 
     if (usesTemporaryAuthorization) {
-      this.authorizationStore.consume(
-        parsed.data.participantCode,
-        parsed.data.recipient,
-      );
+      this.authorizationStore.consume(participantCode, recipient);
     }
 
     return { status: 'sent', messageId: result.messageId };
@@ -193,5 +239,7 @@ export const emailService = new EmailService(
     runtimeAuthorizationTtlSeconds:
       env.RUNTIME_RECIPIENT_AUTHORIZATION_TTL_SECONDS,
   },
+  new SequelizeCampaignPersistence(),
+  participantService,
   emailRecipientAuthorizationStore,
 );

@@ -19,8 +19,21 @@ interface AdminResponse {
 }
 
 interface CommandRequest {
+  campaignId: number;
   input: SimulationEmailInput;
   requiresTemporaryAuthorization: boolean;
+}
+
+function parseCampaignId(raw: string): number {
+  const campaignId = Number(raw.trim());
+
+  if (!Number.isInteger(campaignId) || campaignId <= 0) {
+    throw new EmailCliInputError(
+      'Informe o ID de uma campanha valida. Exemplo: npm run email:send -- 1 P001',
+    );
+  }
+
+  return campaignId;
 }
 
 class AdminApiError extends Error {
@@ -42,6 +55,11 @@ async function requestInteractiveInput(): Promise<
     console.info(
       `Participantes autorizados: ${env.ALLOWED_PARTICIPANT_CODES.join(', ')}`,
     );
+
+    const campaignAnswer = await terminal.question(
+      'ID da campanha ativa: ',
+    );
+    const campaignId = parseCampaignId(campaignAnswer);
 
     const participantAnswer = await terminal.question(
       `Código do participante [${defaultParticipant}]: `,
@@ -75,6 +93,7 @@ async function requestInteractiveInput(): Promise<
     }
 
     console.info('\nConfira antes do envio:');
+    console.info(`- campanha: ${campaignId}`);
     console.info(`- participante: ${resolved.input.participantCode}`);
     console.info(
       `- destinatário: ${maskEmailForDisplay(resolved.input.recipient)}`,
@@ -92,7 +111,7 @@ async function requestInteractiveInput(): Promise<
       return undefined;
     }
 
-    return resolved;
+    return { campaignId, ...resolved };
   } finally {
     terminal.close();
   }
@@ -105,9 +124,12 @@ async function resolveInput(): Promise<CommandRequest | undefined> {
     return requestInteractiveInput();
   }
 
+  const campaignId = parseCampaignId(args[0] ?? '');
+
   return {
+    campaignId,
     input: resolveEmailCommandInput(
-      args,
+      args.slice(1),
       env.ALLOWED_PARTICIPANT_CODES,
       env.EMAIL_RECIPIENT_ALLOWLIST,
     ),
@@ -154,7 +176,10 @@ async function sendEmail(): Promise<void> {
     });
   }
 
-  const result = await callAdminApi('/admin/send', { ...request.input });
+  const result = await callAdminApi('/admin/send', {
+    campaignId: String(request.campaignId),
+    ...request.input,
+  });
 
   console.info(
     result.status === 'already_sent'

@@ -4,7 +4,9 @@ import { isAdminAuthorized } from '../admin/admin-auth';
 import {
   EmailAuditError,
   EmailAuthorizationDisabledError,
+  EmailCampaignClosedError,
   EmailDeliveryError,
+  EmailLimitReachedError,
   EmailValidationError,
 } from './email.service';
 import type { EmailOperations } from './email.types';
@@ -77,8 +79,15 @@ export function createEmailRoute(
         if (error instanceof EmailValidationError) {
           return reply.code(400).send({
             ok: false,
-            error: 'Use somente participante e destinatario autorizados.',
+            error: 'Use somente campanha, participante e destinatario autorizados.',
           });
+        }
+
+        if (
+          error instanceof EmailCampaignClosedError ||
+          error instanceof EmailLimitReachedError
+        ) {
+          return reply.code(409).send({ ok: false, error: error.message });
         }
 
         if (error instanceof EmailDeliveryError) {

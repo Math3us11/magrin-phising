@@ -1,8 +1,12 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import { adminConsoleRoute } from './modules/admin/console.route';
 import { createDemoResetRoute } from './modules/admin/demo-reset.route';
 import { demoResetService } from './modules/admin/demo-reset.service';
 import type { DemoResetOperations } from './modules/admin/demo-reset.types';
+import { createCampaignsRoute } from './modules/campaigns/campaigns.route';
+import { campaignService } from './modules/campaigns/campaigns.service';
+import type { CampaignOperations } from './modules/campaigns/campaigns.types';
 import { createDashboardRoute } from './modules/dashboard/dashboard.route';
 import { dashboardService } from './modules/dashboard/dashboard.service';
 import type { DashboardOperations } from './modules/dashboard/dashboard.types';
@@ -13,13 +17,18 @@ import { healthRoute } from './modules/health/health.route';
 import { createLoginRoute } from './modules/login/login.route';
 import { loginService } from './modules/login/login.service';
 import type { LoginOperations } from './modules/login/login.types';
+import { createParticipantsRoute } from './modules/participants/participants.route';
+import { participantService } from './modules/participants/participants.service';
+import type { ParticipantOperations } from './modules/participants/participants.types';
 import { publicRoute } from './modules/public/public.route';
 
 interface BuildAppOptions {
+  campaignOperations?: CampaignOperations;
   dashboardOperations?: DashboardOperations;
   demoResetOperations?: DemoResetOperations;
   emailOperations?: EmailOperations;
   loginOperations?: LoginOperations;
+  participantOperations?: ParticipantOperations;
 }
 
 export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
@@ -46,6 +55,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 
   app.register(healthRoute);
   app.register(publicRoute);
+  app.register(adminConsoleRoute);
   app.register(createLoginRoute(options.loginOperations ?? loginService));
   app.register(
     createDashboardRoute(options.dashboardOperations ?? dashboardService),
@@ -53,6 +63,14 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   app.register(createEmailRoute(options.emailOperations ?? emailService));
   app.register(
     createDemoResetRoute(options.demoResetOperations ?? demoResetService),
+  );
+  app.register(
+    createCampaignsRoute(options.campaignOperations ?? campaignService),
+  );
+  app.register(
+    createParticipantsRoute(
+      options.participantOperations ?? participantService,
+    ),
   );
 
   app.setErrorHandler((error, request, reply) => {

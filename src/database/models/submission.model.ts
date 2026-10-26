@@ -13,6 +13,7 @@ export class Submission extends Model<
 > {
   declare id: CreationOptional<number>;
   declare participantCode: string;
+  declare campaignId: CreationOptional<number | null>;
   declare cpfMasked: string;
   declare passwordMasked: string;
   declare createdAt: CreationOptional<Date>;
@@ -33,6 +34,11 @@ export function initializeSubmissionModel(
         allowNull: false,
         unique: 'uq_submission_participant',
         field: 'participant_code',
+      },
+      campaignId: {
+        type: DataTypes.BIGINT.UNSIGNED,
+        allowNull: true,
+        field: 'campaign_id',
       },
       cpfMasked: {
         type: DataTypes.STRING(20),

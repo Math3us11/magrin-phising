@@ -10,10 +10,17 @@ export class SequelizeEmailPersistence implements EmailPersistence {
     return count > 0;
   }
 
-  async recordSent(participantCode: string): Promise<void> {
+  async recordSent(
+    participantCode: string,
+    campaignId: number,
+  ): Promise<void> {
     await Audit.findOrCreate({
       where: { participantCode, eventType: 'email_sent' },
-      defaults: { participantCode, eventType: 'email_sent' },
+      defaults: { participantCode, eventType: 'email_sent', campaignId },
     });
+  }
+
+  async countSentForCampaign(campaignId: number): Promise<number> {
+    return Audit.count({ where: { campaignId, eventType: 'email_sent' } });
   }
 }

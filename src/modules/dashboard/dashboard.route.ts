@@ -16,7 +16,17 @@ export function createDashboardRoute(
       return reply.type('text/html; charset=utf-8').send(page);
     });
 
-    app.get('/api/dashboard/metrics', async () => operations.getMetrics());
+    app.get<{ Querystring: { campaignId?: string } }>(
+      '/api/dashboard/metrics',
+      async (request) => {
+        const raw = request.query.campaignId;
+        const parsed = raw === undefined ? NaN : Number(raw);
+        const campaignId =
+          Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+
+        return operations.getMetrics(campaignId);
+      },
+    );
   };
 }
 

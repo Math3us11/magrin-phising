@@ -2,12 +2,13 @@ import { z } from 'zod';
 
 import { env } from '../../config/env';
 import { maskCpf, maskPassword, normalizeCpf } from '../../utils/mask';
+import { participantService } from '../participants/participants.service';
 import { SequelizeLoginPersistence } from './login.repository';
 import type {
   LoginOperations,
   LoginPersistence,
-  LoginSubmissionInput,
   MaskedLoginSubmission,
+  ParticipantResolver,
 } from './login.types';
 
 const cpfSchema = z
@@ -18,7 +19,7 @@ const cpfSchema = z
   .pipe(z.string().regex(/^\d{11}$/));
 
 const loginSubmissionSchema = z.object({
-  participantCode: z.string().regex(/^P\d{3,6}$/),
+  p: z.string().min(1),
   cpf: cpfSchema,
   password: z.string().min(4).max(64),
 });
@@ -33,32 +34,47 @@ export class LoginValidationError extends Error {
 export class LoginService implements LoginOperations {
   constructor(
     private readonly persistence: LoginPersistence,
-    private readonly allowedParticipantCodes: readonly string[],
+    private readonly resolver: ParticipantResolver,
     private readonly allowedTestCpfs: readonly string[],
   ) {}
 
-  async registerClick(participantCode: string | undefined): Promise<boolean> {
-    if (
-      !participantCode ||
-      !/^P\d{3,6}$/.test(participantCode) ||
-      !this.allowedParticipantCodes.includes(participantCode)
-    ) {
+  async registerClick(token: string | undefined): Promise<boolean> {
+    if (!token) {
       return false;
     }
 
-    await this.persistence.recordEvent(participantCode, 'link_clicked');
+    const participant = await this.resolver.resolveToken(token);
+
+    if (!participant) {
+      return false;
+    }
+
+    await this.persistence.recordEvent(
+      participant.participantCode,
+      'link_clicked',
+      participant.campaignId,
+    );
     return true;
   }
 
   async submit(input: unknown): Promise<MaskedLoginSubmission> {
     const parsed = loginSubmissionSchema.safeParse(input);
 
-    if (!parsed.success || !this.isAllowedIdentity(parsed.data)) {
+    if (!parsed.success) {
+      throw new LoginValidationError();
+    }
+
+    const participant = await this.resolver.resolveToken(parsed.data.p);
+
+    // Token invalido/expirado ou CPF fora do cadastro ficticio: descartados sem
+    // persistir o conteudo submetido (AGENTS secoes 2.1 e 6).
+    if (!participant || !this.allowedTestCpfs.includes(parsed.data.cpf)) {
       throw new LoginValidationError();
     }
 
     const maskedSubmission: MaskedLoginSubmission = {
-      participantCode: parsed.data.participantCode,
+      participantCode: participant.participantCode,
+      campaignId: participant.campaignId,
       cpfMasked: maskCpf(parsed.data.cpf),
       passwordMasked: maskPassword(parsed.data.password),
     };
@@ -66,18 +82,10 @@ export class LoginService implements LoginOperations {
     await this.persistence.saveSubmissionAndEvent(maskedSubmission);
     return maskedSubmission;
   }
-
-  private isAllowedIdentity(input: LoginSubmissionInput): boolean {
-    return (
-      this.allowedParticipantCodes.includes(input.participantCode) &&
-      this.allowedTestCpfs.includes(input.cpf)
-    );
-  }
 }
 
 export const loginService = new LoginService(
   new SequelizeLoginPersistence(),
-  env.ALLOWED_PARTICIPANT_CODES,
+  participantService,
   env.ALLOWED_TEST_CPFS,
 );
-

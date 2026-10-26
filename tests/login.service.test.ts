@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { LoginService, LoginValidationError } from '../src/modules/login/login.service';
+import {
+  LoginService,
+  LoginValidationError,
+} from '../src/modules/login/login.service';
 import type {
   LoginPersistence,
   MaskedLoginSubmission,
+  ParticipantResolver,
 } from '../src/modules/login/login.types';
+
+const VALID_TOKEN = 'abcdefghijklmnopqrstuvwxyz0123456789_-AB';
 
 function createPersistence() {
   const saved: MaskedLoginSubmission[] = [];
@@ -19,17 +25,23 @@ function createPersistence() {
   return { persistence, saved };
 }
 
+function createResolver(
+  participant: { participantCode: string; campaignId: number } | null,
+): ParticipantResolver {
+  return { resolveToken: vi.fn(async () => participant) };
+}
+
 describe('LoginService', () => {
-  it('entrega somente CPF e senha mascarados para a persistencia', async () => {
+  it('entrega CPF e senha mascarados e vinculados a campanha do token', async () => {
     const { persistence, saved } = createPersistence();
     const service = new LoginService(
       persistence,
-      ['P001'],
+      createResolver({ participantCode: 'P001', campaignId: 7 }),
       ['00000000000'],
     );
 
     await service.submit({
-      participantCode: 'P001',
+      p: VALID_TOKEN,
       cpf: '000.000.000-00',
       password: 'teste123',
     });
@@ -37,6 +49,7 @@ describe('LoginService', () => {
     expect(saved).toEqual([
       {
         participantCode: 'P001',
+        campaignId: 7,
         cpfMasked: '***.***.***-00',
         passwordMasked: '[8 caracteres capturados]',
       },
@@ -47,17 +60,34 @@ describe('LoginService', () => {
     expect(persistedJson).not.toContain('teste123');
   });
 
-  it('recusa participante ou CPF fora das allowlists', async () => {
+  it('recusa token invalido ou expirado sem persistir', async () => {
+    const { persistence } = createPersistence();
+    const service = new LoginService(persistence, createResolver(null), [
+      '00000000000',
+    ]);
+
+    await expect(
+      service.submit({
+        p: VALID_TOKEN,
+        cpf: '000.000.000-00',
+        password: 'teste123',
+      }),
+    ).rejects.toBeInstanceOf(LoginValidationError);
+
+    expect(persistence.saveSubmissionAndEvent).not.toHaveBeenCalled();
+  });
+
+  it('recusa CPF fora do cadastro ficticio sem persistir', async () => {
     const { persistence } = createPersistence();
     const service = new LoginService(
       persistence,
-      ['P001'],
+      createResolver({ participantCode: 'P001', campaignId: 7 }),
       ['00000000000'],
     );
 
     await expect(
       service.submit({
-        participantCode: 'P999',
+        p: VALID_TOKEN,
         cpf: '123.456.789-09',
         password: 'teste123',
       }),
@@ -66,19 +96,22 @@ describe('LoginService', () => {
     expect(persistence.saveSubmissionAndEvent).not.toHaveBeenCalled();
   });
 
-  it('registra o clique somente para participante permitido', async () => {
+  it('registra o clique com a campanha quando o token e valido', async () => {
     const { persistence } = createPersistence();
     const service = new LoginService(
       persistence,
-      ['P001'],
+      createResolver({ participantCode: 'P001', campaignId: 7 }),
       ['00000000000'],
     );
 
-    await expect(service.registerClick('P001')).resolves.toBe(true);
-    await expect(service.registerClick('P999')).resolves.toBe(false);
+    await expect(service.registerClick(VALID_TOKEN)).resolves.toBe(true);
+    await expect(service.registerClick(undefined)).resolves.toBe(false);
 
     expect(persistence.recordEvent).toHaveBeenCalledTimes(1);
-    expect(persistence.recordEvent).toHaveBeenCalledWith('P001', 'link_clicked');
+    expect(persistence.recordEvent).toHaveBeenCalledWith(
+      'P001',
+      'link_clicked',
+      7,
+    );
   });
 });
-

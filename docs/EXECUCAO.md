@@ -71,6 +71,11 @@ Implementado neste primeiro incremento:
   Sequelize;
 - registro idempotente de `link_clicked` e `form_submitted`;
 - persistencia exclusiva de CPF mascarado e tamanho da senha;
+- documento ficticio em `GET /boleto?p=P001`, sem valor, pagamento, QR Code ou
+  codigo bancario valido;
+- tela educativa em `GET /awareness?p=P001`, com sinais do cenario e resposta
+  recomendada;
+- fluxo integrado de `login -> boleto ficticio -> conscientizacao`;
 - dashboard agregado de apresentacao em `GET /dashboard?p=P001`;
 - API de metricas em `GET /api/dashboard/metrics`;
 - limpeza protegida em `POST /admin/reset-demo` e `npm run db:reset`;
@@ -78,7 +83,6 @@ Implementado neste primeiro incremento:
 
 Ainda nao implementado:
 
-- boleto e conscientizacao;
 - dashboard administrativo detalhado e autenticacao administrativa;
 - tela administrativa detalhada para iniciar os envios;
 
@@ -487,6 +491,8 @@ Abrir:
 Aplicacao:       http://localhost:3000
 Saude do servidor: http://localhost:3000/health
 Login de teste:  http://localhost:3000/login?p=P001
+Documento ficticio: http://localhost:3000/boleto?p=P001
+Conscientizacao: http://localhost:3000/awareness?p=P001
 Dashboard:       http://localhost:3000/dashboard?p=P001
 ```
 

@@ -10,10 +10,13 @@ export interface DashboardMetrics {
 }
 
 export interface MetricsPersistence {
-  countEvent(eventType: AuditEventType): Promise<number>;
+  countEvent(
+    eventType: AuditEventType,
+    campaignId?: number | null,
+  ): Promise<number>;
 }
 
 export interface DashboardOperations {
-  getMetrics(): Promise<DashboardMetrics>;
+  getMetrics(campaignId?: number | null): Promise<DashboardMetrics>;
 }
 

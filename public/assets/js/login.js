@@ -1,22 +1,21 @@
 const form = document.querySelector('#login-form');
 const cpfInput = document.querySelector('#cpf');
 const passwordInput = document.querySelector('#password');
-const participantInput = document.querySelector('#participant-code');
+const participantInput = document.querySelector('#participant-token');
 const participantNotice = document.querySelector('#participant-notice');
 const submitButton = document.querySelector('#submit-button');
 const forgotPasswordButton = document.querySelector('#forgot-password');
 const feedback = document.querySelector('#form-feedback');
 
-const participantCode = new URLSearchParams(window.location.search).get('p');
-const validParticipantCode = /^P\d{3,6}$/.test(participantCode ?? '');
+const accessToken = new URLSearchParams(window.location.search).get('p');
+const validToken = /^[A-Za-z0-9_-]{32,64}$/.test(accessToken ?? '');
 
-if (validParticipantCode) {
-  participantInput.value = participantCode;
-  participantNotice.textContent = `Participante de teste: ${participantCode}`;
+if (validToken) {
+  participantInput.value = accessToken;
   participantNotice.hidden = true;
 } else {
   participantNotice.textContent =
-    'Abra o link individual da demonstração, por exemplo: /login?p=P001.';
+    'Abra o link individual da demonstração enviado para você.';
   participantNotice.hidden = false;
   submitButton.disabled = true;
 }
@@ -57,13 +56,13 @@ form.addEventListener('submit', async (event) => {
   feedback.hidden = true;
 
   try {
-    const response = await fetch('/login', {
+    const response = await fetch('/login/cpf', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        participantCode: participantInput.value,
+        p: participantInput.value,
         cpf: cpfInput.value,
         password: passwordInput.value,
       }),

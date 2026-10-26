@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Console administrativo | Simulação Acadêmica</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <script src="/assets/js/admin.js" defer></script>
+  </head>
+  <body>
+    <div class="simulation-banner" role="status">
+      <span class="simulation-banner__dot" aria-hidden="true"></span>
+      Simulação Acadêmica — console restrito à equipe responsável
+    </div>
+
+    <header class="console-header">
+      <div class="console-header__content">
+        <span class="brand-mark">Sentinela Acadêmica</span>
+        <div class="header-copy">
+          <span>Segurança e Auditoria de Sistemas</span>
+          <strong>Console administrativo</strong>
+        </div>
+        <span id="connection-chip" class="chip chip--off">Desconectado</span>
+      </div>
+    </header>
+
+    <main class="console-shell">
+      <!-- Autenticação -->
+      <section class="card" aria-labelledby="auth-title">
+        <h2 id="auth-title">Acesso</h2>
+        <p class="hint">
+          Informe o token administrativo local. Ele é usado apenas neste
+          navegador para autenticar as chamadas e nunca é gravado no servidor.
+        </p>
+        <form id="auth-form" class="row" autocomplete="off">
+          <div class="field grow">
+            <label for="admin-token">Token administrativo</label>
+            <input
+              id="admin-token"
+              name="token"
+              type="password"
+              autocomplete="off"
+              required
+            />
+          </div>
+          <label class="remember">
+            <input id="remember-token" type="checkbox" />
+            <span>Lembrar nesta aba</span>
+          </label>
+          <button class="btn" type="submit">Conectar</button>
+        </form>
+        <p id="auth-feedback" class="feedback" role="status" hidden></p>
+      </section>
+
+      <div class="grid" data-requires-auth hidden>
+        <!-- Campanhas -->
+        <section class="card" aria-labelledby="campaigns-title">
+          <div class="card-head">
+            <h2 id="campaigns-title">Campanhas</h2>
+            <button id="refresh-campaigns" class="btn btn--ghost" type="button">
+              Atualizar
+            </button>
+          </div>
+
+          <form id="campaign-form" class="stack" autocomplete="off">
+            <div class="field">
+              <label for="campaign-name">Nome da campanha</label>
+              <input id="campaign-name" name="name" type="text" required />
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="campaign-max">Limite de envios (opcional)</label>
+                <input id="campaign-max" name="maxSends" type="number" min="1" />
+              </div>
+              <div class="field">
+                <label for="campaign-start">Início da janela (opcional)</label>
+                <input
+                  id="campaign-start"
+                  name="startsAt"
+                  type="datetime-local"
+                />
+              </div>
+              <div class="field">
+                <label for="campaign-end">Fim da janela (opcional)</label>
+                <input id="campaign-end" name="endsAt" type="datetime-local" />
+              </div>
+            </div>
+            <button class="btn" type="submit">Criar campanha</button>
+          </form>
+
+          <div id="campaigns-list" class="list" aria-live="polite"></div>
+        </section>
+
+        <!-- Inscrição de participantes -->
+        <section class="card" aria-labelledby="enroll-title">
+          <h2 id="enroll-title">Inscrever participantes</h2>
+          <p class="hint">
+            Gera um token opaco por participante. Os links aparecem
+            <strong>uma única vez</strong> — copie e distribua pelos canais
+            autorizados.
+          </p>
+          <form id="enroll-form" class="stack" autocomplete="off">
+            <div class="field">
+              <label for="enroll-campaign">Campanha</label>
+              <select id="enroll-campaign" name="campaignId" required></select>
+            </div>
+            <div class="field">
+              <label for="enroll-codes">Códigos (ex.: P001, P002)</label>
+              <input
+                id="enroll-codes"
+                name="codes"
+                type="text"
+                placeholder="P001, P002, P003"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="enroll-expiry">Validade do token (horas)</label>
+              <input
+                id="enroll-expiry"
+                name="expiresInHours"
+                type="number"
+                min="1"
+                max="336"
+                value="72"
+              />
+            </div>
+            <button class="btn" type="submit">Gerar tokens</button>
+          </form>
+          <div id="enroll-result" class="links" aria-live="polite"></div>
+        </section>
+
+        <!-- Envio de e-mail -->
+        <section class="card" aria-labelledby="send-title">
+          <h2 id="send-title">Enviar e-mail</h2>
+          <p class="hint">
+            O envio respeita a janela e o limite da campanha. Em
+            <code>EMAIL_MODE=disabled</code> nada sai para a internet.
+          </p>
+          <form id="send-form" class="stack" autocomplete="off">
+            <div class="field">
+              <label for="send-campaign">Campanha</label>
+              <select id="send-campaign" name="campaignId" required></select>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="send-code">Participante</label>
+                <input id="send-code" name="participantCode" type="text" required />
+              </div>
+              <div class="field grow">
+                <label for="send-recipient">Destinatário</label>
+                <input id="send-recipient" name="recipient" type="email" required />
+              </div>
+            </div>
+            <label class="remember">
+              <input id="send-consent" type="checkbox" />
+              <span>Destinatário fora da allowlist fixa autorizou o teste</span>
+            </label>
+            <button class="btn" type="submit">Enviar</button>
+          </form>
+          <p id="send-feedback" class="feedback" role="status" hidden></p>
+        </section>
+
+        <!-- Métricas -->
+        <section class="card" aria-labelledby="metrics-title">
+          <div class="card-head">
+            <h2 id="metrics-title">Métricas</h2>
+            <select id="metrics-campaign" class="inline-select">
+              <option value="">Todas as campanhas</option>
+            </select>
+          </div>
+          <div id="metrics-grid" class="metrics" aria-live="polite"></div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

@@ -4,10 +4,12 @@ import { buildApp } from '../src/app';
 import type { LoginOperations } from '../src/modules/login/login.types';
 
 const apps: ReturnType<typeof buildApp>[] = [];
+const DEMO_TOKEN = 'abcdefghijklmnopqrstuvwxyz0123456789_-AB';
 const testLoginOperations: LoginOperations = {
   registerClick: async () => true,
   submit: async () => ({
     participantCode: 'P001',
+    campaignId: 1,
     cpfMasked: '***.***.***-00',
     passwordMasked: '[8 caracteres capturados]',
   }),
@@ -72,14 +74,14 @@ describe('GET /login', () => {
     expect(logo.headers['content-type']).toContain('image/png');
   });
 
-  it('envia o formulario ficticio ao endpoint do servidor', async () => {
+  it('envia o formulario ficticio ao endpoint com token da Fase 2', async () => {
     const app = createTestApp();
 
     const response = await app.inject({
       method: 'POST',
-      url: '/login',
+      url: '/login/cpf',
       payload: {
-        participantCode: 'P001',
+        p: DEMO_TOKEN,
         cpf: '000.000.000-00',
         password: 'teste123',
       },
@@ -89,7 +91,7 @@ describe('GET /login', () => {
     expect(response.json()).toMatchObject({
       ok: true,
       participantCode: 'P001',
-      nextUrl: '/dashboard?p=P001',
+      nextUrl: `/boleto?p=${DEMO_TOKEN}`,
     });
   });
 });

@@ -21,6 +21,7 @@ const loginOperations: LoginOperations = {
   registerClick: async () => true,
   submit: async () => ({
     participantCode: 'P001',
+    campaignId: 1,
     cpfMasked: '***.***.***-00',
     passwordMasked: '[8 caracteres capturados]',
   }),

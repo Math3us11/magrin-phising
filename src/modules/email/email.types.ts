@@ -1,3 +1,5 @@
+import type { CampaignRecord } from '../campaigns/campaigns.types';
+
 export interface SimulationEmailInput {
   participantCode: string;
   recipient: string;
@@ -24,7 +26,19 @@ export interface EmailDeliveryResult {
 
 export interface EmailPersistence {
   wasSent(participantCode: string): Promise<boolean>;
-  recordSent(participantCode: string): Promise<void>;
+  recordSent(participantCode: string, campaignId: number): Promise<void>;
+  countSentForCampaign(campaignId: number): Promise<number>;
+}
+
+export interface EmailCampaignLookup {
+  findById(campaignId: number): Promise<CampaignRecord | null>;
+}
+
+export interface EmailTokenIssuer {
+  issueToken(
+    campaignId: number,
+    participantCode: string,
+  ): Promise<{ loginUrl: string }>;
 }
 
 export interface EmailTransport {

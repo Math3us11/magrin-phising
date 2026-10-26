@@ -1,6 +1,7 @@
 import { Sequelize } from 'sequelize';
 
 import { env } from '../config/env';
+import { ensureCampaignLink } from '../database/migrations/ensure-campaign-link';
 import { sequelize } from '../database/sequelize';
 
 async function setupDatabase(): Promise<void> {
@@ -33,17 +34,34 @@ async function setupDatabase(): Promise<void> {
     await sequelize.sync();
 
     const queryInterface = sequelize.getQueryInterface();
-    const [auditExists, submissionsExists] = await Promise.all([
-      queryInterface.tableExists('audit'),
-      queryInterface.tableExists('submissions'),
-    ]);
 
-    if (!auditExists || !submissionsExists) {
+    stage = 'migracao aditiva do vinculo de campanha';
+    const appliedColumns = await ensureCampaignLink(queryInterface);
+    for (const column of appliedColumns) {
+      console.info(`- coluna adicionada: ${column}`);
+    }
+
+    const [auditExists, submissionsExists, campaignsExists, participantsExists] =
+      await Promise.all([
+        queryInterface.tableExists('audit'),
+        queryInterface.tableExists('submissions'),
+        queryInterface.tableExists('campaigns'),
+        queryInterface.tableExists('participants'),
+      ]);
+
+    if (
+      !auditExists ||
+      !submissionsExists ||
+      !campaignsExists ||
+      !participantsExists
+    ) {
       throw new Error('As tabelas esperadas nao foram encontradas.');
     }
 
     console.info('- tabela audit: verificada');
     console.info('- tabela submissions: verificada');
+    console.info('- tabela campaigns: verificada');
+    console.info('- tabela participants: verificada');
     console.info('Banco pronto. Agora execute: npm run dev');
   } catch {
     console.error(`Falha durante ${stage}.`);
